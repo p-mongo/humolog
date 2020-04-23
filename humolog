@@ -64,7 +64,7 @@ for line in sys.stdin.readlines():
         formatted_msg = line['msg'].format(**vars)
     else:
         formatted_msg = line['msg']
-    print('%s %s %s [%s] %s' % (
+    print('%s %s %-8s [%s] %s' % (
         #line['t'].strftime(iso8601_format),
         line['t'],
         line['s'],
