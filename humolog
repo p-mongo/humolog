@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, datetime, json, re
+from collections import defaultdict
 
 iso8601_format = r'(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)(\.\d+)?(?:([-+])(\d\d):(\d\d))?$'
 
@@ -26,8 +27,20 @@ def parse_iso8601(formatted_time):
     else:
         raise ValueError('Time not in ISO8601 format: %s' % formatted_time)
 
+def humanize_extended_json(doc):
+    if isinstance(doc, dict):
+        keys = ' '.join(sorted(doc.keys()))
+        if keys == '$oid':
+            return doc['$oid']
+        else:
+            return doc
+    elif isinstance(doc, list):
+        return map(humanize_extended_json, doc)
+    else:
+        return doc
+
 for line in sys.stdin.readlines():
-    line = json.loads(line)
+    line = humanize_extended_json(json.loads(line))
     if 't' in line and '$date' in line['t']:
         formatted_time = line['t']['$date']
         if True:
@@ -40,7 +53,15 @@ for line in sys.stdin.readlines():
     #print(line)
     if 'attr' in line:
         #print(line)
-        formatted_msg = line['msg'].format(**line['attr'])
+        #print(line['msg'],line['attr'])
+        vars = dict(**line['attr'])
+        for key in re.findall(r'\{(\w+?)\}', line['msg']):
+            if key not in vars:
+                sys.stderr.write("ERROR: missing value for %s:\n%s\nwith %s\n" % (key, line['msg'], line['attr']))
+                vars[key] = '???'
+        
+        #print(vars['delay'])
+        formatted_msg = line['msg'].format(**vars)
     else:
         formatted_msg = line['msg']
     print('%s %s %s [%s] %s' % (
