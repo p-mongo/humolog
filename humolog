@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import sys, datetime, json, re
+
+iso8601_format = r'(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)(\.\d+)?(?:([-+])(\d\d):(\d\d))?$'
+
+def parse_iso8601(formatted_time):
+    match = re.match(iso8601_format, formatted_time)
+    if match:
+        if match.group(8) == '-':
+            tz_sign = -1
+        else:
+            tz_sign = 1
+        dt = datetime.datetime(
+            int(match.group(1)),
+            int(match.group(2)),
+            int(match.group(3)),
+            int(match.group(4)),
+            int(match.group(5)),
+            int(match.group(6)),
+            int(float('0'+match.group(7))*1000000),
+            datetime.timezone(offset=tz_sign * datetime.timedelta(
+                hours=int(match.group(9)), minutes=int(match.group(10)))),
+        )
+        return dt
+    else:
+        raise ValueError('Time not in ISO8601 format: %s' % formatted_time)
+
+for line in sys.stdin.readlines():
+    line = json.loads(line)
+    if 't' in line and '$date' in line['t']:
+        formatted_time = line['t']['$date']
+        if True:
+            line['t'] = formatted_time
+        else:
+            try:
+                line['t'] = parse_iso8601(formatted_time)
+            except ValueError:
+                pass
+    #print(line)
+    if 'attr' in line:
+        #print(line)
+        formatted_msg = line['msg'].format(**line['attr'])
+    else:
+        formatted_msg = line['msg']
+    print('%s %s %s [%s] %s' % (
+        #line['t'].strftime(iso8601_format),
+        line['t'],
+        line['s'],
+        line['c'],
+        line['ctx'],
+        formatted_msg,
+    ))
